@@ -1,6 +1,6 @@
 # Cyber Hound — User Manual
 
-*Covers version 1.7.1 · for the Elecrow ThinkNode M9 · by Geekaboo*
+*Covers version 1.8.1 · for the Elecrow ThinkNode M9 · by Geekaboo*
 
 ## What Cyber Hound is
 
@@ -24,13 +24,13 @@ Cyber Hound is a **receive-only** RF awareness firmware for the Elecrow ThinkNod
 
 There are two firmware files:
 
-- **CyberHound_M9_v1.7.1_full.bin** — the complete image (bootloader, partitions and app). Flash it at address **0x0** with the Espressif web flasher or esptool when Cyber Hound is the only firmware on the M9.
-- **CyberHound_M9_v1.7.1_app.bin** — the app only. Use this with **Launcher** (2.10.0 or newer) for multi-boot next to wadamesh, or upload it through the web dashboard's update page.
+- **CyberHound_M9_v1.8.1_full.bin** — the complete image (bootloader, partitions and app). Flash it at address **0x0** with the Espressif web flasher or esptool when Cyber Hound is the only firmware on the M9.
+- **CyberHound_M9_v1.8.1_app.bin** — the app only. Use this with **Launcher** (2.10.0 or newer) for multi-boot next to wadamesh, or upload it through the web dashboard's update page.
 
 Example with esptool:
 
 ```
-esptool --chip esp32s3 write_flash 0x0 CyberHound_M9_v1.7.1_full.bin
+esptool --chip esp32s3 write_flash 0x0 CyberHound_M9_v1.8.1_full.bin
 ```
 
 The USB-C port is a CH340 serial bridge, so serial logs appear at 115200 baud on that port.
@@ -159,6 +159,9 @@ Shows everything on your phone or laptop. See *Web dashboard* below.
 ### Alerts (Chat button)
 All alerts in one list, newest first, also logged to `/hound/events.csv`. Repeated alerts for the same thing are grouped.
 
+### Signal Catch (mini-game)
+A small Game & Watch–style game, the last entry in the menu. The Hound sits in one of three lanes and data packets fall from the top: catch the **cyan** packets (be in their lane when they reach the bottom) for a point each, and **dodge the red jammer bolts** (don't be in their lane). Miss a good packet or catch a jammer and you lose one of three lives; it speeds up as your score climbs. **Left/Right** move between lanes, **OK** starts or restarts, **DEL** leaves. The high score is saved to the SD card (`/hound/signalcatch.txt`) and shown as **HI** — without a card it still plays, but the score isn't kept.
+
 ## Special features
 
 ### Direction finding
@@ -238,8 +241,30 @@ Everything goes in the `/hound/` folder. Numbered files (`_0001`, `_0002`, …) 
 | `events.csv` | Every alert with time, type and position |
 | `tle.txt` | Satellite orbit data (refreshed with **U** or automatically at home) |
 | `sent/` | WiGLE files that were uploaded successfully |
+| `signalcatch.txt` | Signal Catch high score |
+| `cyberhound.cfg` | Wi-Fi + WiGLE settings, restored on the first boot after a flash |
 
 The SD card sits inside the M9. The easiest way to get files off without opening the case is the **web dashboard**: its Files tab lets you download any log. The card can be FAT32 or exFAT.
+
+## Config file (keep settings across a flash)
+
+Flashing the full image wipes the M9's saved settings, so your home Wi-Fi and WiGLE details would normally have to be typed in again. To avoid that, Cyber Hound keeps a plain-text config on the SD card at `/hound/cyberhound.cfg` and reads it **once, on the first boot after a flash** to restore those settings.
+
+It works two ways:
+- **Automatic** — once you enter the Wi-Fi/WiGLE details on the M9, the file is written and kept in step. After the next reflash the first boot restores them.
+- **By hand** — create the file yourself and drop it on the SD card before first boot, so you never type them on the device.
+
+Format (values run to the end of the line; lines starting with `#` are ignored):
+
+```
+wifi_ssid=YourHomeNetwork
+wifi_pass=YourWifiPassword
+wigle_name=YourWigleApiName
+wigle_token=YourWigleApiToken
+wigle_auto=1
+```
+
+`wigle_auto` is 1 for auto-upload at home, 0 for manual. The file holds your Wi-Fi password and WiGLE token in clear text, so treat the SD card accordingly. It's only re-read after a flash — changes you make on the device afterwards win and are written back to the file.
 
 ## Troubleshooting
 
