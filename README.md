@@ -4,7 +4,7 @@
 
 ## What Cyber Hound is
 
-![Cyber Hound boot splash — cyber werewolf](plash.png)
+![Cyber Hound boot splash — cyber werewolf](splash.png)
 
 Cyber Hound is a **receive-only** RF awareness firmware for the Elecrow ThinkNode M9. It listens to Wi-Fi, Bluetooth LE, LoRa (868 MHz) and GNSS and tells you what is around you: suspicious Wi-Fi behaviour, Bluetooth trackers that follow you, cameras and doorbells, drones broadcasting Remote ID, LoRaWAN sensors, MeshCore and Meshtastic traffic, GNSS jamming or spoofing, and more. It never transmits attacks — the only things it sends are the optional web dashboard hotspot and WiGLE/satellite-data downloads over your own home Wi-Fi.
 
