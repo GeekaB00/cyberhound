@@ -1,6 +1,6 @@
 # Cyber Hound — User Manual
 
-*Covers version 1.8.1 · for the Elecrow ThinkNode M9 · by Geekaboo*
+*Covers version 1.10.0 · for the Elecrow ThinkNode M9 · by Geekaboo*
 
 ## What Cyber Hound is
 
@@ -24,13 +24,13 @@ Cyber Hound is a **receive-only** RF awareness firmware for the Elecrow ThinkNod
 
 There are two firmware files:
 
-- **CyberHound_M9_v1.8.1_full.bin** — the complete image (bootloader, partitions and app). Flash it at address **0x0** with the Espressif web flasher or esptool when Cyber Hound is the only firmware on the M9.
-- **CyberHound_M9_v1.8.1_app.bin** — the app only. Use this with **Launcher** (2.10.0 or newer) for multi-boot next to wadamesh, or upload it through the web dashboard's update page.
+- **CyberHound_M9_v1.10.0_full.bin** — the complete image (bootloader, partitions and app). Flash it at address **0x0** with the Espressif web flasher or esptool when Cyber Hound is the only firmware on the M9.
+- **CyberHound_M9_v1.10.0_app.bin** — the app only. Use this with **Launcher** (2.10.0 or newer) for multi-boot next to wadamesh, or upload it through the web dashboard's update page.
 
 Example with esptool:
 
 ```
-esptool --chip esp32s3 write_flash 0x0 CyberHound_M9_v1.8.1_full.bin
+esptool --chip esp32s3 write_flash 0x0 CyberHound_M9_v1.10.0_full.bin
 ```
 
 The USB-C port is a CH340 serial bridge, so serial logs appear at 115200 baud on that port.
@@ -162,6 +162,27 @@ All alerts in one list, newest first, also logged to `/hound/events.csv`. Repeat
 ### Signal Catch (mini-game)
 A small Game & Watch–style game, the last entry in the menu. The Hound sits in one of three lanes and data packets fall from the top: catch the **cyan** packets (be in their lane when they reach the bottom) for a point each, and **dodge the red jammer bolts** (don't be in their lane). Miss a good packet or catch a jammer and you lose one of three lives; it speeds up as your score climbs. **Left/Right** move between lanes, **OK** starts or restarts, **DEL** leaves. The high score is saved to the SD card (`/hound/signalcatch.txt`) and shown as **HI** — without a card it still plays, but the score isn't kept.
 
+### Deauth Dodge (mini-game)
+The second Game & Watch–style game. You're a Wi-Fi client in one of three lanes and **deauth bolts** rain down — move **Left/Right** to stay out of a lane when a bolt lands. Getting hit costs one of three lives, and it speeds up the longer you last. Your score is how many **seconds you survive**; **OK** starts or restarts, **DEL** leaves. The best time is saved to the SD card (`/hound/deauthdodge.txt`).
+
+### Sentry (home baseline)
+Learns what's normal in a place, then warns you when something new moves in. Stand where you want to guard and press **L** to learn the baseline — every Wi-Fi access point, Bluetooth device and camera around you right now is remembered (saved to the device, so it survives reboots). Press **OK** to arm it. While armed, any device that is **not** in the baseline and **sticks around** (about 3 minutes for an ordinary device, under a minute for a camera or tracker) is flagged once as a new arrival, with an alert, so passers-by don't trip it. The screen lists what it caught (type, name, signal, how long ago). **X** clears the baseline. Good for a hotel room, an Airbnb, or your own home while you're away — a step up from Room watch, which only notices movement and raw new devices.
+
+
+### Nearby (Wi-Fi probe watch)
+Shows client devices — phones, laptops, watches — around you, picked up from the Wi-Fi **probe requests** they send out looking for networks (like a Fingbox's "digital fence"). The list shows each device's MAC, signal strength (so you get rough distance), how many probes it has sent, and any network name it asked for; the header counts how many are active. A **~** marks a **randomised (privacy) MAC**.
+
+What to expect: it's good for "how many devices are around me / is a new one hanging about," but **modern phones randomise their MAC** in probes and mostly send broadcast (wildcard) probes, so you usually **can't identify whose phone it is** or read their saved-network list — and a connected phone barely probes at all. So treat it as presence and proximity, not identification.
+
+Sentry uses this too: a device with a **stable** (non-randomised) MAC that isn't in your baseline and lingers is flagged as a new **PHONE/client**. Randomised MACs are deliberately ignored there, because they change every few minutes — including your own phone's — and would cause constant false alarms.
+
+### Aircraft (ADS-B from your Pi)
+Shows planes overhead on a radar centred on you, pulled from your own ADS-B receiver (readsb / dump1090 / PiAware) over your home Wi-Fi. The radar plots each aircraft by bearing and distance (rings at 5/10/25 km, range 25 km), coloured by altitude — amber below 10,000 ft, green mid, cyan at cruise — and the list shows callsign, flight level, distance and a climb/descent arrow. **OK** opens a plane's full details: hex, squawk (7500/7600/7700 and emergency flags turn it red), aircraft class, altitude and vertical rate, ground and indicated speed, heading, distance/bearing with a compass arrow, position and feed signal. **U** refreshes.
+
+It needs the M9 on the **same network as the Pi** — point its home Wi-Fi (Wardrive → W, or `cyberhound.cfg`) at the network the Pi lives on, not an isolated IoT/guest SSID, or it won't reach the feed. Like the web dashboard, Wi-Fi/BLE sniffing pauses while this screen is open. The feed URL (default `http://192.168.1.53:8080/data/aircraft.json`, with PiAware/dump1090 paths tried automatically) and the home position used when there's no GPS fix live in `cyberhound.cfg`.
+
+**Local or public feed.** Press **F** on the Aircraft screen to switch source — shown top-left as **LOCAL** or **PUBLIC**. *Local* uses your own ADS-B receiver on the LAN (lowest latency, limited to your antenna's coverage; the default). *Public* needs no receiver at all: it pulls aircraft around your GPS position (or the home position in `cyberhound.cfg`) from a free internet aggregator (airplanes.live), refreshing a little slower to stay within fair use. The choice is saved and lives in `cyberhound.cfg` as `air_feed=local` or `air_feed=public` — so a build you share works for someone with no Pi. The plane detail view also looks up the flight's **origin → destination** (and airline) by callsign over the internet; scheduled flights resolve, charter/GA show as unknown.
+
 ## Special features
 
 ### Direction finding
@@ -242,6 +263,7 @@ Everything goes in the `/hound/` folder. Numbered files (`_0001`, `_0002`, …) 
 | `tle.txt` | Satellite orbit data (refreshed with **U** or automatically at home) |
 | `sent/` | WiGLE files that were uploaded successfully |
 | `signalcatch.txt` | Signal Catch high score |
+| `deauthdodge.txt` | Deauth Dodge best survival time |
 | `cyberhound.cfg` | Wi-Fi + WiGLE settings, restored on the first boot after a flash |
 
 The SD card sits inside the M9. The easiest way to get files off without opening the case is the **web dashboard**: its Files tab lets you download any log. The card can be FAT32 or exFAT.
@@ -262,9 +284,13 @@ wifi_pass=YourWifiPassword
 wigle_name=YourWigleApiName
 wigle_token=YourWigleApiToken
 wigle_auto=1
+air_url=http://192.168.1.53:8080/data/aircraft.json
+home_lat=52.08000
+home_lon=4.31000
+air_feed=local
 ```
 
-`wigle_auto` is 1 for auto-upload at home, 0 for manual. The file holds your Wi-Fi password and WiGLE token in clear text, so treat the SD card accordingly. It's only re-read after a flash — changes you make on the device afterwards win and are written back to the file.
+`wigle_auto` is 1 for auto-upload at home, 0 for manual. `air_feed` is `local` (your own Pi) or `public` (internet aggregator, no receiver needed); `air_url` is the Pi feed and `home_lat`/`home_lon` the Aircraft fallback position. The file holds your Wi-Fi password and WiGLE token in clear text, so treat the SD card accordingly. It's only re-read after a flash — changes you make on the device afterwards win and are written back to the file.
 
 ## Troubleshooting
 
